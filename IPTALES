@@ -1,0 +1,42 @@
+===============================================
+   iptables security structure 
+
+apt-get install iptables-persistent
+iptables-save > /etc/iptables/rules.v4
+systemctl enable iptables.service
+systemctl start iptables.service
+-----------------
+iptables -t filter -N CHECK_INPUT
+iptables -t filter -N CHECK_OUTPUT
+--------------
+iptables -t filter -I INPUT -j CHECK_INPUT
+iptables -t filter -I OUTPUT -j CHECK_OUTPUT
+-----------------------------
+iptables -I CHECK_INPUT 1 -i lo -j ACCEPT
+iptables -A CHECK_INPUT -i docker0 -j ACCEPT
+iptables -A CHECK_INPUT -p tcp --dport ssh_port -j ACCEPT
+iptables -A CHECK_INPUT -p tcp --dport 80 -j ACCEPT
+iptables -A CHECK_INPUT -p tcp --dport 443 -j ACCEPT
+iptables -A CHECK_INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -A CHECK_INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A INPUT -j DROP
+--------------------------------
+iptables -A CHECK_OUTPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+iptables -A CHECK_OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+iptables -I CHECK_OUTPUT -p tcp --dport ssh_port -j ACCEPT
+
+--------------------------------
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags SYN,RST SYN,RST -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,RST FIN,RST -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,ACK FIN -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags ACK,URG URG -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,ACK FIN -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags PSH,ACK PSH -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,PSH,URG -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,PSH,URG -j DROP
+iptables -t mangle -A PREROUTING -p tcp -m tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,ACK,URG -j DROP
